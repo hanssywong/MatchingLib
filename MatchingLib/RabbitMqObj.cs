@@ -9,13 +9,21 @@ using System.Threading.Tasks;
 
 namespace MatchingLib
 {
-    public class RabbitMqOut
+    public abstract class RabbitMqBase
     {
-        private ConnectionFactory factory { get; } = new ConnectionFactory();
-        private IConnection conn { get; set; }
-        private IModel channel { get; set; }
-        private string queueName { get; set; }
-
+        protected virtual ConnectionFactory factory { get; } = new ConnectionFactory();
+        protected virtual IConnection conn { get; set; }
+        protected virtual IModel channel { get; set; }
+        protected virtual string queueName { get; set; }
+        protected virtual EventingBasicConsumer consumer { get; set; }
+        public void Shutdown()
+        {
+            if (channel != null) channel.Close();
+            if (conn != null) conn.Close();
+        }
+    }
+    public class RabbitMqOut : RabbitMqBase
+    {
         public RabbitMqOut(string uri, string queue_name)
         {
             factory.Uri = new Uri(uri);
@@ -33,15 +41,21 @@ namespace MatchingLib
                                  basicProperties: properties,
                                  body: data);
         }
-    }
-    public class RabbitMqIn
-    {
-        private ConnectionFactory factory { get; } = new ConnectionFactory();
-        private IConnection conn { get; set; }
-        private IModel channel { get; set; }
-        private EventingBasicConsumer consumer { get; set; }
-        private string queueName { get; set; }
 
+        public void Enqueue(IBinaryProcess BinObjIn)
+        {
+            var binObj = BinObjIn.ToBytes();
+            var properties = channel.CreateBasicProperties();
+            properties.Persistent = true;
+            channel.BasicPublish(exchange: "",
+                                 routingKey: queueName,
+                                 basicProperties: properties,
+                                 body: binObj.bytes);
+            BinaryObjPool.Checkin(binObj);
+        }
+    }
+    public class RabbitMqIn : RabbitMqBase
+    {
         public RabbitMqIn(string uri, string queue_name)
         {
             factory.Uri = new Uri(uri);

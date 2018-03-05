@@ -15,7 +15,7 @@ namespace MatchingLib
     /// 1 byte      | 8 bytes  | 1 byte        | 1 byte    | 1 byte     | 30 bytes | 1 byte    | 51 bytes | 8 bytes | 1 byte     | 50 bytes | 1 byte      | 60 bytes | 8 bytes       |
     /// Max: 222 bytes
     /// </summary>
-    public abstract class RequestToMatching
+    public abstract class RequestToMatching : IBinaryProcess
     {
         /// <summary>
         /// 1 byte
@@ -78,6 +78,7 @@ namespace MatchingLib
         static int OrderFilledVolumeSize { get; } = 8;
         /// <summary>
         /// Structure Max binary length
+        /// Max: 222 bytes
         /// </summary>
         public static int TotalLength { get; } = RequestTypeSize + DateTimeSize + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
             OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize + OrderFilledVolumeSize;
@@ -138,7 +139,7 @@ namespace MatchingLib
             this.order.v = BitConverter.ToInt64(bytes, OrderVolumePos);
             this.order.u = Encoding.UTF8.GetString(bytes, OrderUserIdPos, OrderUserIdActualSize).Trim();
             this.order.id = Encoding.UTF8.GetString(bytes, OrderIdPos, OrderIdActualSize).Trim();
-            this.order.fv= BitConverter.ToInt64(bytes, OrderFilledVolumePos);
+            this.order.fv = BitConverter.ToInt64(bytes, OrderFilledVolumePos);
         }
         public virtual BinaryObj ToBytes()
         {
@@ -162,6 +163,7 @@ namespace MatchingLib
         }
         public static void CheckIn(BinaryObj buffer)
         {
+            buffer.ResetOjb();
             BinaryObjPool.PoolForReq.Pool.Checkin(buffer);
         }
     }

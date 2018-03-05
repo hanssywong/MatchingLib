@@ -13,14 +13,13 @@ namespace MatchingLib
     /// 1 byte  | 8 bytes  | 1 byte    | 1 byte        | 1 byte    | 1 byte     | 30 bytes | 1 byte    | 51 bytes | 8 bytes | 1 byte     | 50 bytes | 1 byte      | 60 bytes | 8 bytes       |
     /// Max: 223 bytes
     /// </summary>
-    public abstract class ProcessOrderResult : IMethodResult
+    public abstract class ProcessOrderResult : IMethodResult, IBinaryProcess
     {
         public enum ErrorType
         {
             Error,
             Success,
             OrderExists,
-            PartialFill,
             SystemBusy,
             Cancelled,
             OrderIsMissing
@@ -90,6 +89,7 @@ namespace MatchingLib
         static int OrderFilledVolumeSize { get; } = 8;
         /// <summary>
         /// Structure Max binary length
+        /// Max: 223 bytes
         /// </summary>
         public static int TotalLength { get; } = RequestTypeSize + DateTimeSize + ErrorTypeSize + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
             OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize + OrderFilledVolumeSize;
@@ -127,7 +127,7 @@ namespace MatchingLib
 
             int OrderFilledVolumePos = OrderIdPos + OrderIdActualSize;
 
-            this.Success = bytes[SuccessPos] > 0;
+            this.Success = BitConverter.ToBoolean(bytes, SuccessPos);
             long _dt = BitConverter.ToInt64(bytes, DateTimePos);
             this.dt = DateTime.FromBinary(_dt);
             this.errorType = (ErrorType)bytes[ErrorTypePos];
@@ -169,6 +169,7 @@ namespace MatchingLib
         }
         public static void CheckIn(BinaryObj buffer)
         {
+            buffer.ResetOjb();
             BinaryObjPool.PoolForResp.Pool.Checkin(buffer);
         }
         public static BinaryObj ConstructRejectBuffer(byte[] RequestBytes)

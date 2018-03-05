@@ -11,7 +11,7 @@ namespace MatchingLib
     /// DateTime | Symbol len | Symbol   | Price len | Price    | Volume  | Buy Order len | Buy Order ID  | Sell Order len | Sell Order ID  | Tx ID len | Tx ID    | Initiator |
     /// 8 bytes  | 1 byte     | 30 bytes | 1 byte    | 51 bytes | 8 bytes | 1 byte        | 60 bytes      | 1 byte         | 60 bytes       | 1 byte    | 60 bytes | 1 byte    |
     /// Max: 283 bytes
-    public abstract class Transaction
+    public abstract class Transaction : IBinaryProcess
     {
         /// <summary>
         /// 8 bytes
@@ -71,6 +71,7 @@ namespace MatchingLib
 
         /// <summary>
         /// Structure Max binary length
+        /// Max: 283 bytes
         /// </summary>
         public static int TotalLength { get; } = DateTimeSize + SymbolLenSize + SymbolMaxSize + PriceLenSize + PriceMaxSize + VolumeSize + BuyOrderIdLenSize + BuyOrderIdMaxSize +
             SellOrderIdLenSize + SellOrderIdMaxSize + TxIdLenSize + TxIdMaxSize + InitiatorSize;
@@ -83,35 +84,35 @@ namespace MatchingLib
         /// <summary>
         /// Symbol
         /// </summary>
-        public string s { get; set; }
+        public string s { get; set; } = string.Empty;
         /// <summary>
         /// Transaction ID
         /// </summary>
-        public string id { get; set; }
+        public string id { get; set; } = string.Empty;
         /// <summary>
         /// price
         /// </summary>
-        public double p { set; get; }
+        public double p { set; get; } = 0;
         /// <summary>
         /// volume
         /// </summary>
-        public long v { set; get; }
+        public long v { set; get; } = 0;
         /// <summary>
         /// buy side order id(ticket number)
         /// </summary>
-        public string bt { set; get; }
+        public string bt { set; get; } = string.Empty;
         /// <summary>
         /// sell side order id(ticket number)
         /// </summary>
-        public string st { set; get; }
+        public string st { set; get; } = string.Empty;
         /// <summary>
         /// Tx created time
         /// </summary>
-        public DateTime dt { get; set; }
+        public DateTime dt { get; set; } = DateTime.Now;
         /// <summary>
         /// Initiator side
         /// </summary>
-        public InitiatorType init { get; set; }
+        public InitiatorType init { get; set; } = InitiatorType.Buy;
         public void ResetObj()
         {
             this.bt = string.Empty;
