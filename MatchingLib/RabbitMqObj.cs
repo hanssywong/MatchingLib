@@ -37,7 +37,7 @@ namespace MatchingLib
         {
             var ch = channelPool.CheckoutMT();
             var properties = ch.CreateBasicProperties();
-            properties.Persistent = true;
+            //properties.Persistent = true;
             ch.BasicPublish(exchange: "",
                                  routingKey: queueName,
                                  basicProperties: properties,
@@ -54,14 +54,14 @@ namespace MatchingLib
     }
     public class RabbitMqIn : RabbitMqBase
     {
-        public RabbitMqIn(string uri, string queue_name)
+        public RabbitMqIn(string uri, string queue_name, ushort prefetchCount = 1)
         {
             factory.Uri = new Uri(uri);
             conn = factory.CreateConnection();
             channel = conn.CreateModel();
             queueName = queue_name;
-            channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
-            channel.BasicQos(prefetchSize: 0, prefetchCount: 10, global: true);
+            //channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+            channel.BasicQos(prefetchSize: 0, prefetchCount: prefetchCount, global: true);
             consumer = new EventingBasicConsumer(channel);
             //consumer.Received += (model, ea) =>
             //{

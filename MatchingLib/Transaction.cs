@@ -8,9 +8,9 @@ namespace MatchingLib
 {
     /// Binary Structure
     /// Comment, Symbol, Price, UserID, OrderID are variable length
-    /// DateTime | Symbol len | Symbol   | Price len | Price    | Volume  | Buy Order len | Buy Order ID  | Sell Order len | Sell Order ID  | Tx ID len | Tx ID    | Initiator |
-    /// 8 bytes  | 1 byte     | 30 bytes | 1 byte    | 51 bytes | 8 bytes | 1 byte        | 60 bytes      | 1 byte         | 60 bytes       | 1 byte    | 60 bytes | 1 byte    |
-    /// Max: 283 bytes
+    /// DateTime | Price len | Price    | Volume  | Buy Order len | Buy Order ID  | Sell Order len | Sell Order ID  | Tx ID len | Tx ID    | Initiator |
+    /// 8 bytes  | 1 byte    | 41 bytes | 8 bytes | 1 byte        | 40 bytes      | 1 byte         | 40 bytes       | 1 byte    | 40 bytes | 1 byte    |
+    /// Max: 182 bytes
     public abstract class Transaction : IBinaryProcess
     {
         /// <summary>
@@ -20,22 +20,19 @@ namespace MatchingLib
         /// <summary>
         /// 1 byte
         /// </summary>
-        static int SymbolLenSize { get; } = 1;
+        //static int SymbolLenSize { get; } = 1;
         /// <summary>
         /// 30 bytes - content
         /// </summary>
-        static int SymbolMaxSize { get; } = 30;
+        //static int SymbolMaxSize { get; } = 30;
         /// <summary>
         /// 1 byte
         /// </summary>
         static int PriceLenSize { get; } = 1;
         /// <summary>
-        /// 30 bytes
-        /// dot 1 byte
-        /// decimal place 20 bytes
-        /// 51 bytes - content
+        /// 41 bytes
         /// </summary>
-        static int PriceMaxSize { get; } = 51;
+        static int PriceMaxSize { get; } = 41;
         /// <summary>
         /// 8 bytes
         /// </summary>
@@ -45,25 +42,25 @@ namespace MatchingLib
         /// </summary>
         static int BuyOrderIdLenSize { get; } = 1;
         /// <summary>
-        /// 60 bytes
+        /// 40 bytes
         /// </summary>
-        static int BuyOrderIdMaxSize { get; } = 60;
+        static int BuyOrderIdMaxSize { get; } = 40;
         /// <summary>
         /// 1 byte
         /// </summary>
         static int SellOrderIdLenSize { get; } = 1;
         /// <summary>
-        /// 60 bytes
+        /// 40 bytes
         /// </summary>
-        static int SellOrderIdMaxSize { get; } = 60;
+        static int SellOrderIdMaxSize { get; } = 40;
         /// <summary>
         /// 1 byte
         /// </summary>
         static int TxIdLenSize { get; } = 1;
         /// <summary>
-        /// 60 bytes
+        /// 40 bytes
         /// </summary>
-        static int TxIdMaxSize { get; } = 60;
+        static int TxIdMaxSize { get; } = 40;
         /// <summary>
         /// 1 byte
         /// </summary>
@@ -71,9 +68,9 @@ namespace MatchingLib
 
         /// <summary>
         /// Structure Max binary length
-        /// Max: 283 bytes
+        /// Max: 182 bytes
         /// </summary>
-        public static int TotalLength { get; } = DateTimeSize + SymbolLenSize + SymbolMaxSize + PriceLenSize + PriceMaxSize + VolumeSize + BuyOrderIdLenSize + BuyOrderIdMaxSize +
+        public static int TotalLength { get; } = DateTimeSize /*+ SymbolLenSize + SymbolMaxSize*/ + PriceLenSize + PriceMaxSize + VolumeSize + BuyOrderIdLenSize + BuyOrderIdMaxSize +
             SellOrderIdLenSize + SellOrderIdMaxSize + TxIdLenSize + TxIdMaxSize + InitiatorSize;
 
         public enum InitiatorType
@@ -126,10 +123,10 @@ namespace MatchingLib
 
         public virtual BinaryObj ToBytes()
         {
-            var buffer = BinaryObjPool.PoolForTx.Pool.CheckoutMT();
+            var buffer = BinaryObjPool.PoolForTx.Pool.Checkout();
             buffer.bw.Write(this.dt.ToBinary());
-            if (this.s.Length > SymbolMaxSize) throw new Exception(string.Format("Symbol exceed max length:{0}", SymbolMaxSize));
-            buffer.bw.Write(this.s);
+            //if (this.s.Length > SymbolMaxSize) throw new Exception(string.Format("Symbol exceed max length:{0}", SymbolMaxSize));
+            //buffer.bw.Write(this.s);
             buffer.bw.Write(this.p.ToString());
             buffer.bw.Write(this.v);
             if (this.bt.Length > BuyOrderIdMaxSize) throw new Exception(string.Format("Buy Order ID exceed max length:{0}", BuyOrderIdMaxSize));
@@ -150,11 +147,12 @@ namespace MatchingLib
         {
             int DateTimePos = 0;
 
-            int SymbolLenPos = DateTimePos + DateTimeSize;
-            int SymbolPos = SymbolLenPos + SymbolLenSize;
-            int SymbolActualSize = bytes[SymbolLenPos];
+            //int SymbolLenPos = DateTimePos + DateTimeSize;
+            //int SymbolPos = SymbolLenPos + SymbolLenSize;
+            //int SymbolActualSize = bytes[SymbolLenPos];
 
-            int PriceLenPos = SymbolPos + SymbolActualSize;
+            //int PriceLenPos = SymbolPos + SymbolActualSize;
+            int PriceLenPos = DateTimePos + DateTimeSize;
             int PricePos = PriceLenPos + PriceLenSize;
             int PriceActualSize = bytes[PriceLenPos];
 
@@ -176,7 +174,7 @@ namespace MatchingLib
 
             long _dt = BitConverter.ToInt64(bytes, DateTimePos);
             this.dt = DateTime.FromBinary(_dt);
-            this.s = Encoding.UTF8.GetString(bytes, SymbolPos, SymbolActualSize).Trim();
+            //this.s = Encoding.UTF8.GetString(bytes, SymbolPos, SymbolActualSize).Trim();
             string price = Encoding.UTF8.GetString(bytes, PricePos, PriceActualSize).Trim();
             double p = 0.0;
             if (double.TryParse(price, out p))

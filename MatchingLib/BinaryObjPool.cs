@@ -48,6 +48,7 @@ namespace MatchingLib
         /// </summary>
         public static BinaryObjPool PoolForReq { get; } = new BinaryObjPool(RequestToMatching.TotalLength, BinaryObj.PresetType.RequestToMatching);
         public static BinaryObjPool PoolForResp { get; } = new BinaryObjPool(ProcessOrderResult.TotalLength, BinaryObj.PresetType.ProcessOrderResult);
+        public static BinaryObjPool PoolForRej { get; } = new BinaryObjPool(ProcessOrderResult.TotalLength, BinaryObj.PresetType.ProcessOrderResult);
         public static BinaryObjPool PoolForTx { get; } = new BinaryObjPool(Transaction.TotalLength, BinaryObj.PresetType.Transaction);
         public static void Checkin(BinaryObj binObj)
         {
@@ -64,6 +65,11 @@ namespace MatchingLib
             {
                 PoolForTx.Pool.Checkin(binObj);
             }
+        }
+        public static void CheckinRej(BinaryObj binObj)
+        {
+            binObj.ResetOjb();
+            PoolForRej.Pool.Checkin(binObj);
         }
         public BinaryObjPool(int byteArrayLength, BinaryObj.PresetType t = BinaryObj.PresetType.Unknown)
         {

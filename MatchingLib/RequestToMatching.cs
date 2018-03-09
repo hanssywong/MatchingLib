@@ -11,9 +11,9 @@ namespace MatchingLib
     /// <summary>
     /// Binary Structure
     /// Symbol, Price, UserID, OrderID are variable length
-    /// RequestType | DateTime | ExecutionType | Direction | Symbol len | Symbol   | Price len | Price    | Volume  | UserID len | User ID  | OrderID len | Order ID | Filled Volume |
-    /// 1 byte      | 8 bytes  | 1 byte        | 1 byte    | 1 byte     | 30 bytes | 1 byte    | 51 bytes | 8 bytes | 1 byte     | 50 bytes | 1 byte      | 60 bytes | 8 bytes       |
-    /// Max: 222 bytes
+    /// RequestType | DateTime | ExecutionType | Direction | Price len | Price    | Volume  | UserID len | User ID  | OrderID len | Order ID | Filled Volume |
+    /// 1 byte      | 8 bytes  | 1 byte        | 1 byte    | 1 byte    | 41 bytes | 8 bytes | 1 byte     | 40 bytes | 1 byte      | 40 bytes | 8 bytes       |
+    /// Max: 151 bytes
     /// </summary>
     public abstract class RequestToMatching : IBinaryProcess
     {
@@ -36,11 +36,11 @@ namespace MatchingLib
         /// <summary>
         /// 1 byte
         /// </summary>
-        static int OrderSymbolLenSize { get; } = 1;
+        //static int OrderSymbolLenSize { get; } = 1;
         /// <summary>
         /// 30 bytes - content
         /// </summary>
-        static int OrderSymbolMaxSize { get; } = 30;
+        //static int OrderSymbolMaxSize { get; } = 30;
         /// <summary>
         /// 1 byte
         /// </summary>
@@ -51,7 +51,8 @@ namespace MatchingLib
         /// decimal place 20 bytes
         /// 51 bytes - content
         /// </summary>
-        static int OrderPriceMaxSize { get; } = 51;
+        //static int OrderPriceMaxSize { get; } = 51;
+        static int OrderPriceMaxSize { get; } = 41;
         /// <summary>
         /// 8 bytes
         /// </summary>
@@ -63,7 +64,8 @@ namespace MatchingLib
         /// <summary>
         /// 50 bytes - content
         /// </summary>
-        static int OrderUserIdMaxSize { get; } = 50;
+        //static int OrderUserIdMaxSize { get; } = 50;
+        static int OrderUserIdMaxSize { get; } = 40;
         /// <summary>
         /// 1 byte
         /// </summary>
@@ -71,16 +73,17 @@ namespace MatchingLib
         /// <summary>
         /// 60 bytes
         /// </summary>
-        static int OrderIdMaxSize { get; } = 60;
+        //static int OrderIdMaxSize { get; } = 60;
+        static int OrderIdMaxSize { get; } = 40;
         /// <summary>
         /// 8 bytes
         /// </summary>
         static int OrderFilledVolumeSize { get; } = 8;
         /// <summary>
         /// Structure Max binary length
-        /// Max: 222 bytes
+        /// Max: 151 bytes
         /// </summary>
-        public static int TotalLength { get; } = RequestTypeSize + DateTimeSize + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
+        public static int TotalLength { get; } = RequestTypeSize + DateTimeSize + OrderExecutionTypeSize + OrderDirectionSize + /*OrderSymbolLenSize + OrderSymbolMaxSize +*/ OrderPriceLenSize + OrderPriceMaxSize +
             OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize + OrderFilledVolumeSize;
 
         /// <summary>
@@ -103,11 +106,12 @@ namespace MatchingLib
             int OrderExecutionTypePos = DateTimePos + DateTimeSize;
             int OrderDirectionPos = OrderExecutionTypePos + OrderExecutionTypeSize;
 
-            int OrderSymbolLenPos = OrderDirectionPos + OrderDirectionSize;
-            int OrderSymbolPos = OrderSymbolLenPos + OrderSymbolLenSize;
-            int OrderSymbolActualSize = bytes[OrderSymbolLenPos];
+            //int OrderSymbolLenPos = OrderDirectionPos + OrderDirectionSize;
+            //int OrderSymbolPos = OrderSymbolLenPos + OrderSymbolLenSize;
+            //int OrderSymbolActualSize = bytes[OrderSymbolLenPos];
 
-            int OrderPriceLenPos = OrderSymbolPos + OrderSymbolActualSize;
+            //int OrderPriceLenPos = OrderSymbolPos + OrderSymbolActualSize;
+            int OrderPriceLenPos = OrderDirectionPos + OrderDirectionSize;
             int OrderPricePos = OrderPriceLenPos + OrderPriceLenSize;
             int OrderPriceActualSize = bytes[OrderPriceLenPos];
 
@@ -129,7 +133,7 @@ namespace MatchingLib
             if (order == null) throw new Exception("Order isn't initialized!");
             this.order.et = (Order.ExecutionType)bytes[OrderExecutionTypePos];
             this.order.t = (Order.OrderType)bytes[OrderDirectionPos];
-            this.order.s = Encoding.UTF8.GetString(bytes, OrderSymbolPos, OrderSymbolActualSize).Trim();
+            //this.order.s = Encoding.UTF8.GetString(bytes, OrderSymbolPos, OrderSymbolActualSize).Trim();
             string price = Encoding.UTF8.GetString(bytes, OrderPricePos, OrderPriceActualSize).Trim();
             double p = 0.0;
             if (double.TryParse(price, out p))
@@ -143,13 +147,13 @@ namespace MatchingLib
         }
         public virtual BinaryObj ToBytes()
         {
-            BinaryObj buffer = BinaryObjPool.PoolForReq.Pool.CheckoutMT();
+            BinaryObj buffer = BinaryObjPool.PoolForReq.Pool.Checkout();
             buffer.bw.Write((byte)this.type);
             buffer.bw.Write(this.dt.ToBinary());
             buffer.bw.Write((byte)this.order.et);
             buffer.bw.Write((byte)this.order.t);
-            if (this.order.s.Length > OrderSymbolMaxSize) throw new Exception(string.Format("Symbol exceed max length:{0}", OrderSymbolMaxSize));
-            buffer.bw.Write(this.order.s);
+            //if (this.order.s.Length > OrderSymbolMaxSize) throw new Exception(string.Format("Symbol exceed max length:{0}", OrderSymbolMaxSize));
+            //buffer.bw.Write(this.order.s);
             string price = this.order.p.ToString();
             //if (price.Length > OrderPriceMaxSize) throw new Exception(string.Format("Price exceed max length:{0}", OrderPriceMaxSize));
             buffer.bw.Write(price);
