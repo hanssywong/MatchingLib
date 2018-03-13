@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace MatchingLib
 {
-    public class Order : ICouchbase
+    public sealed class Order : ICouchbase
     {
+        public enum ProgressStatus
+        {
+            NotInProgress,
+            InProgress
+        }
         public enum ExecutionType
         {
             Limit,
@@ -61,6 +66,10 @@ namespace MatchingLib
         /// Last update time
         /// </summary>
         public DateTime ldt { get; set; } = DateTime.Now;
+        /// <summary>
+        /// Record the order's status
+        /// </summary>
+        public ProgressStatus ps { get; set; } = ProgressStatus.NotInProgress;
 
         public string classType
         {

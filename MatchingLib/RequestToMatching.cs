@@ -11,12 +11,14 @@ namespace MatchingLib
     /// <summary>
     /// Binary Structure
     /// Symbol, Price, UserID, OrderID are variable length
-    /// RequestType | DateTime | ExecutionType | Direction | Price len | Price    | Volume  | UserID len | User ID  | OrderID len | Order ID | Filled Volume |
-    /// 1 byte      | 8 bytes  | 1 byte        | 1 byte    | 1 byte    | 41 bytes | 8 bytes | 1 byte     | 40 bytes | 1 byte      | 40 bytes | 8 bytes       |
-    /// Max: 151 bytes
+    /// Msg length | RequestType | DateTime | ExecutionType | Direction | Price len | Price    | Volume  | ReqID len | Req ID   | OrderID len | Order ID | Filled Volume |
+    /// 2 bytes    | 1 byte      | 8 bytes  | 1 byte        | 1 byte    | 1 byte    | 41 bytes | 8 bytes | 1 byte    | 40 bytes | 1 byte      | 40 bytes | 8 bytes       |
+    /// Max: 153 bytes
     /// </summary>
     public abstract class RequestToMatching : IBinaryProcess
     {
+        static int MsgLenSize { get; } = 2;
+        static int RequestTypePos { get; } = 2;
         /// <summary>
         /// 1 byte
         /// </summary>
@@ -60,12 +62,11 @@ namespace MatchingLib
         /// <summary>
         /// 1 byte
         /// </summary>
-        static int OrderUserIdLenSize { get; } = 1;
+        static int OrderReqIdLenSize { get; } = 1;
         /// <summary>
         /// 50 bytes - content
         /// </summary>
-        //static int OrderUserIdMaxSize { get; } = 50;
-        static int OrderUserIdMaxSize { get; } = 40;
+        static int OrderReqIdMaxSize { get; } = 40;
         /// <summary>
         /// 1 byte
         /// </summary>
@@ -81,10 +82,10 @@ namespace MatchingLib
         static int OrderFilledVolumeSize { get; } = 8;
         /// <summary>
         /// Structure Max binary length
-        /// Max: 151 bytes
+        /// Max: 153 bytes
         /// </summary>
-        public static int TotalLength { get; } = RequestTypeSize + DateTimeSize + OrderExecutionTypeSize + OrderDirectionSize + /*OrderSymbolLenSize + OrderSymbolMaxSize +*/ OrderPriceLenSize + OrderPriceMaxSize +
-            OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize + OrderFilledVolumeSize;
+        public static int TotalLength { get; } = MsgLenSize + RequestTypeSize + DateTimeSize + OrderExecutionTypeSize + OrderDirectionSize + /*OrderSymbolLenSize + OrderSymbolMaxSize +*/ OrderPriceLenSize + OrderPriceMaxSize +
+            OrderVolumeSize + OrderReqIdLenSize + OrderReqIdMaxSize + OrderIdLenSize + OrderIdMaxSize + OrderFilledVolumeSize;
 
         /// <summary>
         ///  we don't support edit
@@ -95,13 +96,12 @@ namespace MatchingLib
             CancelOrder,
             IsOrderExist,
         }
+        public string id { get; set; }
         public DateTime dt { get; set; }
         public RequestType type { get; set; }
         public Order order { get; set; }
-        public virtual void FromBytes(byte[] bytes)
+        public void FromBytes(byte[] bytes)
         {
-            // Request Type
-            int RequestTypePos = 0;
             int DateTimePos = RequestTypePos + RequestTypeSize;
             int OrderExecutionTypePos = DateTimePos + DateTimeSize;
             int OrderDirectionPos = OrderExecutionTypePos + OrderExecutionTypeSize;
@@ -117,11 +117,11 @@ namespace MatchingLib
 
             int OrderVolumePos = OrderPricePos + OrderPriceActualSize;
 
-            int OrderUserIdLenPos = OrderVolumePos + OrderVolumeSize;
-            int OrderUserIdPos = OrderUserIdLenPos + OrderUserIdLenSize;
-            int OrderUserIdActualSize = bytes[OrderUserIdLenPos];
+            int OrderReqIdLenPos = OrderVolumePos + OrderVolumeSize;
+            int OrderReqIdPos = OrderReqIdLenPos + OrderReqIdLenSize;
+            int OrderReqIdActualSize = bytes[OrderReqIdLenPos];
 
-            int OrderIdLenPos = OrderUserIdPos + OrderUserIdActualSize;
+            int OrderIdLenPos = OrderReqIdPos + OrderReqIdActualSize;
             int OrderIdPos = OrderIdLenPos + OrderIdLenSize;
             int OrderIdActualSize = bytes[OrderIdLenPos];
 
@@ -141,13 +141,14 @@ namespace MatchingLib
                 this.order.p = p;
             }
             this.order.v = BitConverter.ToInt64(bytes, OrderVolumePos);
-            this.order.u = Encoding.UTF8.GetString(bytes, OrderUserIdPos, OrderUserIdActualSize).Trim();
+            this.id = Encoding.UTF8.GetString(bytes, OrderReqIdPos, OrderReqIdActualSize).Trim();
             this.order.id = Encoding.UTF8.GetString(bytes, OrderIdPos, OrderIdActualSize).Trim();
             this.order.fv = BitConverter.ToInt64(bytes, OrderFilledVolumePos);
         }
-        public virtual BinaryObj ToBytes()
+        public BinaryObj ToBytes()
         {
-            BinaryObj buffer = BinaryObjPool.PoolForReq.Pool.Checkout();
+            BinaryObj buffer = BinaryObjPool.Checkout(BinaryObj.PresetType.RequestToMatching);
+            buffer.bw.Write((short)0);
             buffer.bw.Write((byte)this.type);
             buffer.bw.Write(this.dt.ToBinary());
             buffer.bw.Write((byte)this.order.et);
@@ -158,11 +159,13 @@ namespace MatchingLib
             //if (price.Length > OrderPriceMaxSize) throw new Exception(string.Format("Price exceed max length:{0}", OrderPriceMaxSize));
             buffer.bw.Write(price);
             buffer.bw.Write(this.order.v);
-            if (this.order.u.Length > OrderUserIdMaxSize) throw new Exception(string.Format("User ID exceed max length:{0}", OrderUserIdMaxSize));
+            if (this.order.u.Length > OrderReqIdMaxSize) throw new Exception(string.Format("User ID exceed max length:{0}", OrderReqIdMaxSize));
             buffer.bw.Write(this.order.u);
             if (this.order.id.Length > OrderIdMaxSize) throw new Exception(string.Format("Order ID exceed max length:{0}", OrderIdMaxSize));
             buffer.bw.Write(this.order.id);
             buffer.bw.Write(this.order.fv);
+            buffer.lenBw.Write((short)buffer.ms.Position);
+            Array.Copy(buffer.lenInBytes, 0, buffer.bytes, 0, 2);
             return buffer;
         }
         public static void CheckIn(BinaryObj buffer)

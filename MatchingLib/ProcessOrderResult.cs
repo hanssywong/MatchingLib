@@ -94,12 +94,12 @@ namespace MatchingLib
         public static int TotalLength { get; } = SuccessSize + DateTimeSize + ErrorTypeSize/* + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
             OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize*/ + OrderFilledVolumeSize;
 
-        public virtual bool Success { get; set; } = false;
-        public virtual DateTime dt { get; set; } = DateTime.Now;
-        public virtual ErrorType errorType { get; set; } = ErrorType.Error;
-        public virtual Order order { get; set; }
-        public virtual string Comment { get; set; } = string.Empty;
-        public virtual void FromBytes(byte[] bytes)
+        public bool Success { get; set; } = false;
+        public DateTime dt { get; set; } = DateTime.Now;
+        public ErrorType errorType { get; set; } = ErrorType.Error;
+        public Order order { get; set; }
+        public string Comment { get; set; } = string.Empty;
+        public void FromBytes(byte[] bytes)
         {
             int SuccessPos = 0;
             int DateTimePos = SuccessPos + SuccessSize;
@@ -151,9 +151,9 @@ namespace MatchingLib
         /// Thread safe
         /// </summary>
         /// <returns></returns>
-        public virtual BinaryObj ToBytes()
+        public BinaryObj ToBytes()
         {
-            BinaryObj buffer = BinaryObjPool.PoolForResp.Pool.CheckoutMT();
+            BinaryObj buffer = BinaryObjPool.Checkout(BinaryObj.PresetType.ProcessOrderResult);
             buffer.bw.Write(this.Success);
             buffer.bw.Write(this.dt.ToBinary());
             buffer.bw.Write((byte)this.errorType);
@@ -179,7 +179,7 @@ namespace MatchingLib
         public static void CheckIn(BinaryObj buffer)
         {
             buffer.ResetOjb();
-            BinaryObjPool.PoolForResp.Pool.Checkin(buffer);
+            BinaryObjPool.Checkin(buffer);
         }
         /// <summary>
         /// Thread safe
@@ -187,11 +187,18 @@ namespace MatchingLib
         /// <returns></returns>
         public static BinaryObj ConstructRejectBuffer()
         {
-            BinaryObj buffer = BinaryObjPool.PoolForRej.Pool.CheckoutMT();
-            buffer.bw.Write(0);
-            buffer.bw.Write(DateTime.Now.ToBinary());
-            buffer.bw.Write((byte)ErrorType.SystemBusy);
-            buffer.bw.Write((long)0);
+            BinaryObj buffer = BinaryObjPool.Checkout(BinaryObj.PresetType.ProcessOrderResult);
+            try
+            {
+                buffer.bw.Write(false);
+                buffer.bw.Write(DateTime.Now.ToBinary());
+                buffer.bw.Write((byte)ErrorType.SystemBusy);
+                buffer.bw.Write((long)0);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
             return buffer;
         }
     }

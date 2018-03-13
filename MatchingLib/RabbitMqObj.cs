@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using BaseHelper;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace MatchingLib
 
         public void Enqueue(byte[] data)
         {
-            var ch = channelPool.CheckoutMT();
+            var ch = channelPool.Checkout();
             var properties = ch.CreateBasicProperties();
             //properties.Persistent = true;
             ch.BasicPublish(exchange: "",

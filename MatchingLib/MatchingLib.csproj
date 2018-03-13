@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MatchingLib</RootNamespace>
     <AssemblyName>MatchingLib</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,7 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Diagnostics.Tracing.EventSource, Version=1.1.28.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\..\MatchingCoreTest\packages\Microsoft.Diagnostics.Tracing.EventSource.Redist.1.1.28\lib\net40\Microsoft.Diagnostics.Tracing.EventSource.dll</HintPath>
+      <HintPath>..\..\MatchingCoreTest\packages\Microsoft.Diagnostics.Tracing.EventSource.Redist.1.1.28\lib\net46\Microsoft.Diagnostics.Tracing.EventSource.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="RabbitMQ.Client, Version=5.0.0.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
@@ -48,19 +49,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SimpleTcpClient.cs" />
     <Compile Include="ICouchbase.cs" />
     <Compile Include="IMethodResult.cs" />
     <Compile Include="BinaryObjPool.cs" />
-    <Compile Include="objPool.cs" />
     <Compile Include="ProcessOrderResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Order.cs" />
     <Compile Include="RabbitMqObj.cs" />
     <Compile Include="RequestToMatching.cs" />
+    <Compile Include="StateObject.cs" />
+    <Compile Include="TcpServer.cs" />
     <Compile Include="Transaction.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\BaseHelper\BaseHelper\BaseHelper.csproj">
+      <Project>{c2632e4d-e8fa-4bd8-bf85-2601c9f65ae0}</Project>
+      <Name>BaseHelper</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

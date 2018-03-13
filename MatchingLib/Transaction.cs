@@ -8,11 +8,13 @@ namespace MatchingLib
 {
     /// Binary Structure
     /// Comment, Symbol, Price, UserID, OrderID are variable length
-    /// DateTime | Price len | Price    | Volume  | Buy Order len | Buy Order ID  | Sell Order len | Sell Order ID  | Tx ID len | Tx ID    | Initiator |
-    /// 8 bytes  | 1 byte    | 41 bytes | 8 bytes | 1 byte        | 40 bytes      | 1 byte         | 40 bytes       | 1 byte    | 40 bytes | 1 byte    |
+    /// Msg length | DateTime | Price len | Price    | Volume  | Buy Order len | Buy Order ID  | Sell Order len | Sell Order ID  | Tx ID len | Tx ID    | Initiator |
+    /// 2 bytes    | 8 bytes  | 1 byte    | 41 bytes | 8 bytes | 1 byte        | 40 bytes      | 1 byte         | 40 bytes       | 1 byte    | 40 bytes | 1 byte    |
     /// Max: 182 bytes
     public abstract class Transaction : IBinaryProcess
     {
+        static int MsgLenSize { get; } = 2;
+        static int DateTimePos { get; } = 2;
         /// <summary>
         /// 8 bytes
         /// </summary>
@@ -121,9 +123,10 @@ namespace MatchingLib
             this.v = 0;
         }
 
-        public virtual BinaryObj ToBytes()
+        public BinaryObj ToBytes()
         {
-            var buffer = BinaryObjPool.PoolForTx.Pool.Checkout();
+            var buffer = BinaryObjPool.Checkout(BinaryObj.PresetType.Transaction);
+            buffer.bw.Write((short)0);
             buffer.bw.Write(this.dt.ToBinary());
             //if (this.s.Length > SymbolMaxSize) throw new Exception(string.Format("Symbol exceed max length:{0}", SymbolMaxSize));
             //buffer.bw.Write(this.s);
@@ -136,6 +139,8 @@ namespace MatchingLib
             if (this.id.Length > TxIdMaxSize) throw new Exception(string.Format("Tx ID exceed max length:{0}", TxIdMaxSize));
             buffer.bw.Write(this.id);
             buffer.bw.Write((byte)this.init);
+            buffer.lenBw.Write((short)buffer.ms.Position);
+            Array.Copy(buffer.lenInBytes, 0, buffer.bytes, 0, 2);
             return buffer;
         }
 
@@ -143,10 +148,8 @@ namespace MatchingLib
         {
             BinaryObjPool.PoolForTx.Pool.Checkin(recycleObj);
         }
-        public virtual void FromBytes(byte[] bytes)
+        public void FromBytes(byte[] bytes)
         {
-            int DateTimePos = 0;
-
             //int SymbolLenPos = DateTimePos + DateTimeSize;
             //int SymbolPos = SymbolLenPos + SymbolLenSize;
             //int SymbolActualSize = bytes[SymbolLenPos];

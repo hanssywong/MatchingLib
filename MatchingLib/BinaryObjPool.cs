@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BaseHelper;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -19,26 +20,30 @@ namespace MatchingLib
             Unknown,
             RequestToMatching,
             ProcessOrderResult,
-            Transaction
+            Transaction,
         }
         public PresetType type { get; } = PresetType.Unknown;
         public byte[] bytes { get; }
         public MemoryStream ms { get; }
         public BinaryWriter bw { get; }
+        public byte[] lenInBytes { get; } = { 0, 0 };
+        public MemoryStream lenMs { get; }
+        public BinaryWriter lenBw { get; }
         public BinaryObj(int byteArrayLength, PresetType t = PresetType.Unknown)
         {
             type = t;
             bytes = new byte[byteArrayLength];
             ms = new MemoryStream(bytes);
             bw = new BinaryWriter(ms);
+            lenMs = new MemoryStream(lenInBytes);
+            lenBw = new BinaryWriter(lenMs);
         }
         public void ResetOjb()
         {
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                bytes[i] = 0;
-            }
+            Array.Clear(bytes, 0, bytes.Length);
+            Array.Clear(lenInBytes, 0, lenInBytes.Length);
             ms.Seek(0, SeekOrigin.Begin);
+            lenMs.Seek(0, SeekOrigin.Begin);
         }
     }
     public class BinaryObjPool
@@ -48,7 +53,6 @@ namespace MatchingLib
         /// </summary>
         public static BinaryObjPool PoolForReq { get; } = new BinaryObjPool(RequestToMatching.TotalLength, BinaryObj.PresetType.RequestToMatching);
         public static BinaryObjPool PoolForResp { get; } = new BinaryObjPool(ProcessOrderResult.TotalLength, BinaryObj.PresetType.ProcessOrderResult);
-        public static BinaryObjPool PoolForRej { get; } = new BinaryObjPool(ProcessOrderResult.TotalLength, BinaryObj.PresetType.ProcessOrderResult);
         public static BinaryObjPool PoolForTx { get; } = new BinaryObjPool(Transaction.TotalLength, BinaryObj.PresetType.Transaction);
         public static void Checkin(BinaryObj binObj)
         {
@@ -66,10 +70,21 @@ namespace MatchingLib
                 PoolForTx.Pool.Checkin(binObj);
             }
         }
-        public static void CheckinRej(BinaryObj binObj)
+        public static BinaryObj Checkout(BinaryObj.PresetType type)
         {
-            binObj.ResetOjb();
-            PoolForRej.Pool.Checkin(binObj);
+            if (type == BinaryObj.PresetType.RequestToMatching)
+            {
+                return PoolForReq.Pool.Checkout();
+            }
+            else if (type == BinaryObj.PresetType.ProcessOrderResult)
+            {
+                return PoolForResp.Pool.Checkout();
+            }
+            else if (type == BinaryObj.PresetType.Transaction)
+            {
+                return PoolForTx.Pool.Checkout();
+            }
+            return null;
         }
         public BinaryObjPool(int byteArrayLength, BinaryObj.PresetType t = BinaryObj.PresetType.Unknown)
         {
