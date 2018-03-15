@@ -140,13 +140,9 @@ namespace MatchingLib
             buffer.bw.Write(this.id);
             buffer.bw.Write((byte)this.init);
             buffer.lenBw.Write((short)buffer.ms.Position);
+            buffer.length = (int)buffer.ms.Position;
             Array.Copy(buffer.lenInBytes, 0, buffer.bytes, 0, 2);
             return buffer;
-        }
-
-        public static void CheckIn(BinaryObj recycleObj)
-        {
-            BinaryObjPool.PoolForTx.Pool.Checkin(recycleObj);
         }
         public void FromBytes(byte[] bytes)
         {

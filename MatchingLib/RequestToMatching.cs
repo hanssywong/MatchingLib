@@ -165,13 +165,9 @@ namespace MatchingLib
             buffer.bw.Write(this.order.id);
             buffer.bw.Write(this.order.fv);
             buffer.lenBw.Write((short)buffer.ms.Position);
+            buffer.length = (int)buffer.ms.Position;
             Array.Copy(buffer.lenInBytes, 0, buffer.bytes, 0, 2);
             return buffer;
-        }
-        public static void CheckIn(BinaryObj buffer)
-        {
-            buffer.ResetOjb();
-            BinaryObjPool.PoolForReq.Pool.Checkin(buffer);
         }
     }
 }

@@ -29,6 +29,8 @@ namespace MatchingLib
         public byte[] lenInBytes { get; } = { 0, 0 };
         public MemoryStream lenMs { get; }
         public BinaryWriter lenBw { get; }
+        public int length { get; set; } = 0;
+
         public BinaryObj(int byteArrayLength, PresetType t = PresetType.Unknown)
         {
             type = t;
@@ -44,6 +46,7 @@ namespace MatchingLib
             Array.Clear(lenInBytes, 0, lenInBytes.Length);
             ms.Seek(0, SeekOrigin.Begin);
             lenMs.Seek(0, SeekOrigin.Begin);
+            length = 0;
         }
     }
     public class BinaryObjPool

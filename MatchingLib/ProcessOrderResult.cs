@@ -24,6 +24,8 @@ namespace MatchingLib
             Cancelled,
             OrderIsMissing
         }
+        static int MsgLenSize { get; } = 2;
+        static int SuccessPos { get; } = 2;
         /// <summary>
         /// 1 byte
         /// </summary>
@@ -91,7 +93,7 @@ namespace MatchingLib
         /// Structure Max binary length
         /// Max: 223 bytes
         /// </summary>
-        public static int TotalLength { get; } = SuccessSize + DateTimeSize + ErrorTypeSize/* + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
+        public static int TotalLength { get; } = MsgLenSize + SuccessSize + DateTimeSize + ErrorTypeSize/* + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
             OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize*/ + OrderFilledVolumeSize;
 
         public bool Success { get; set; } = false;
@@ -101,7 +103,6 @@ namespace MatchingLib
         public string Comment { get; set; } = string.Empty;
         public void FromBytes(byte[] bytes)
         {
-            int SuccessPos = 0;
             int DateTimePos = SuccessPos + SuccessSize;
             int ErrorTypePos = DateTimePos + DateTimeSize;
             //int OrderExecutionTypePos = ErrorTypePos + ErrorTypeSize;
@@ -154,6 +155,7 @@ namespace MatchingLib
         public BinaryObj ToBytes()
         {
             BinaryObj buffer = BinaryObjPool.Checkout(BinaryObj.PresetType.ProcessOrderResult);
+            buffer.bw.Write((short)0);
             buffer.bw.Write(this.Success);
             buffer.bw.Write(this.dt.ToBinary());
             buffer.bw.Write((byte)this.errorType);
@@ -170,16 +172,10 @@ namespace MatchingLib
             //if (this.order.id.Length > OrderIdMaxSize) throw new Exception(string.Format("Order ID exceed max length:{0}", OrderIdMaxSize));
             //buffer.bw.Write(this.order.id);
             buffer.bw.Write(this.order.fv);
+            buffer.lenBw.Write((short)buffer.ms.Position);
+            buffer.length = (int)buffer.ms.Position;
+            Array.Copy(buffer.lenInBytes, 0, buffer.bytes, 0, 2);
             return buffer;
-        }
-        /// <summary>
-        /// Thread safe
-        /// </summary>
-        /// <param name="buffer"></param>
-        public static void CheckIn(BinaryObj buffer)
-        {
-            buffer.ResetOjb();
-            BinaryObjPool.Checkin(buffer);
         }
         /// <summary>
         /// Thread safe
