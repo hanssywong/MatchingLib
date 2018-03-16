@@ -58,7 +58,6 @@
     <Compile Include="Order.cs" />
     <Compile Include="RabbitMqObj.cs" />
     <Compile Include="RequestToMatching.cs" />
-    <Compile Include="StateObject.cs" />
     <Compile Include="Transaction.cs" />
   </ItemGroup>
   <ItemGroup>

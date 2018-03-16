@@ -12,6 +12,7 @@ namespace MatchingLib
     public interface IBinaryProcess
     {
         BinaryObj ToBytes();
+        void FromBytes(byte[] bytes);
     }
     public class BinaryObj
     {
