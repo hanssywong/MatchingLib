@@ -26,6 +26,11 @@ namespace MatchingLib
         NetworkStream stream { get; set; }
         objPool<byte[]> bufferPool { get; set; }
 
+        public bool ReceiveBuffer(out byte[] buffer)
+        {
+            return recvQueue.TryDequeue(out buffer);
+        }
+
         public void CheckinBuffer(byte[] buffer)
         {
             bufferPool.Checkin(buffer);
