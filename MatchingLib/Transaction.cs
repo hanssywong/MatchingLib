@@ -72,7 +72,7 @@ namespace MatchingLib
         /// Structure Max binary length
         /// Max: 182 bytes
         /// </summary>
-        public static int TotalLength { get; } = DateTimeSize /*+ SymbolLenSize + SymbolMaxSize*/ + PriceLenSize + PriceMaxSize + VolumeSize + BuyOrderIdLenSize + BuyOrderIdMaxSize +
+        public static int TotalLength { get; } = MsgLenSize + DateTimeSize /*+ SymbolLenSize + SymbolMaxSize*/ + PriceLenSize + PriceMaxSize + VolumeSize + BuyOrderIdLenSize + BuyOrderIdMaxSize +
             SellOrderIdLenSize + SellOrderIdMaxSize + TxIdLenSize + TxIdMaxSize + InitiatorSize;
 
         public enum InitiatorType

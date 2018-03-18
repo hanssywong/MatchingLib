@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SimpleSocketClient.cs" />
     <Compile Include="SimpleTcpClient.cs" />
     <Compile Include="ICouchbase.cs" />
     <Compile Include="IMethodResult.cs" />

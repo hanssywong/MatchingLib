@@ -10,24 +10,21 @@ using System.Threading.Tasks;
 
 namespace MatchingLib
 {
-    public class SimpleTcpClient
+    public class SimpleSocketClient
     {
         public int ReceiveBufferSize { get; } = 512;
         public delegate void LogInfoEvent(string info);
         public LogInfoEvent LogInfo { get; set; }
         public delegate void LogErrorEvent(string error);
         public LogErrorEvent LogError { get; set; }
-        public volatile int rps = 0;
 
-        TcpClient client { get; set; } = new TcpClient();
+        Socket socket { get; set; } = new Socket(SocketType.Stream, ProtocolType.Tcp);
         Task SenderTask { get; set; }
         Task ReceiverTask { get; set; }
         SpinQueue<BinaryObj> sendQueue { get; } = new SpinQueue<BinaryObj>();
         SpinQueue<byte[]> recvQueue { get; } = new SpinQueue<byte[]>();
-        NetworkStream stream { get; set; }
         objPool<byte[]> bufferPool { get; set; }
 
-        public bool IsReceiveQueueEmpty { get { return recvQueue.IsQueueEmpty; } }
         public bool ReceiveBuffer(out byte[] buffer)
         {
             return recvQueue.TryDequeue(out buffer);
@@ -41,54 +38,31 @@ namespace MatchingLib
         public void Connect(string ip, int port)
         {
             bufferPool = new objPool<byte[]>(() => new byte[ReceiveBufferSize]);
-            client.Connect(ip, port);
-            stream = client.GetStream();
+            socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
+            socket.Connect(ip, port);
             SenderTask = Task.Factory.StartNew(() => SendTask());
             ReceiverTask = Task.Factory.StartNew(() => ReceiveTask());
         }
 
         private void ReceiveTask()
         {
-            byte[] buffer = null;
-            byte[] errorbuffer = new byte[200 * 1024];
-            byte[] prevbuff = new byte[1024];
-            int len = 0;
-            int prevLen = 0;
-            while (client != null && client.Connected)
+            while (socket != null && socket.Connected)
             {
                 try
                 {
-                    buffer = bufferPool.Checkout();
+                    var buffer = bufferPool.Checkout();
                     // Read data from the client socket.   
-                    int bytesRead = stream.Read(buffer, 0, 2);
+                    int bytesRead = socket.Receive(buffer, 0, 2, SocketFlags.None);
+                    int len = BitConverter.ToInt16(buffer, 0);
+                    bytesRead = socket.Receive(buffer, 2, len, SocketFlags.None);
                     if (bytesRead > 0)
                     {
-                        bytesRead = 0;
-                        len = BitConverter.ToInt16(buffer, 0);
-                        if (len > ReceiveBufferSize)
-                        {
-                            Array.Copy(buffer, errorbuffer, 2);
-                            bytesRead = stream.Read(errorbuffer, 2, len - 2);
-                            if (prevLen <= prevbuff.Length)
-                            {
-                                LogError("prevLen:" + prevLen);
-                                LogError("prevbuff:" + BitConverter.ToString(prevbuff, 0, prevLen));
-                            }
-                            LogError("len:" + len);
-                            LogError("errorbuffer:" + BitConverter.ToString(errorbuffer, 0, len));
-                            bufferPool.Checkin(buffer);
-                            continue;
-                        }
-                        else
-                        {
-                            bytesRead = stream.Read(buffer, 2, len - 2);
-                            recvQueue.Enqueue(buffer);
-                        }
+                        recvQueue.Enqueue(buffer);
                     }
                     else
                     {
-                        if (client.Connected)
-                            client.Client.Shutdown(SocketShutdown.Send);
+                        if (socket.Connected)
+                            socket.Shutdown(SocketShutdown.Send);
                     }
                 }
                 catch (OperationCanceledException)
@@ -100,19 +74,14 @@ namespace MatchingLib
                 }
                 finally
                 {
-                    if (client != null && !client.Connected)
+                    if (socket != null && !socket.Connected)
                     {
-                        IPEndPoint remoteIpEndPoint = client.Client.RemoteEndPoint as IPEndPoint;
+                        IPEndPoint remoteIpEndPoint = socket.RemoteEndPoint as IPEndPoint;
                         LogInfo?.Invoke("SimpleTcpClient socket closed from IP:" + remoteIpEndPoint?.Address + ", port:" + remoteIpEndPoint?.Port);
-                        client.Close();
-                        GC.SuppressFinalize(client);
-                        client = null;
-                        stream.Close();
-                        GC.SuppressFinalize(stream);
-                        stream = null;
+                        socket.Close();
+                        GC.SuppressFinalize(socket);
+                        socket = null;
                     }
-                    prevLen = len;
-                    Array.Copy(buffer, prevbuff, buffer.Length);
                 }
             }
             LogInfo?.Invoke("SimpleTcpClient ReceiveTask shutdown");
@@ -120,16 +89,14 @@ namespace MatchingLib
 
         private void SendTask()
         {
-            while (client != null && client.Connected)
+            while (socket != null && socket.Connected)
             {
                 BinaryObj binObj = null;
                 try
                 {
                     if (sendQueue.TryDequeue(out binObj))
                     {
-                        stream.Write(binObj.bytes, 0, binObj.length);
-                        rps++;
-                        //stream.Flush();
+                        socket.Send(binObj.bytes, 0, binObj.length, SocketFlags.None);
                     }
                 }
                 catch (OperationCanceledException) { }
@@ -161,7 +128,7 @@ namespace MatchingLib
         {
             sendQueue.ShutdownGracefully();
             recvQueue.ShutdownGracefully();
-            client.Client.Shutdown(SocketShutdown.Send);
+            socket.Shutdown(SocketShutdown.Send);
             SenderTask.Wait();
             ReceiverTask.Wait();
         }
