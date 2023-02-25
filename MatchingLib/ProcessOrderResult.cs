@@ -9,8 +9,8 @@ namespace MatchingLib
     /// <summary>
     /// Binary Structure
     /// Comment, Symbol, Price, UserID, OrderID are variable length
-    /// Success | DateTime | ErrorType | Filled Volume |
-    /// 1 byte  | 8 bytes  | 1 byte    | 8 bytes       |
+    /// Success | DateTime | ErrorType | OrderID len | Order ID | Filled Volume |
+    /// 1 byte  | 8 bytes  | 1 byte    | 1 byte      | 40 bytes | 8 bytes       |
     /// Max: 223 bytes
     /// </summary>
     public abstract class ProcessOrderResult : IMethodResult, IBinaryProcess
@@ -77,14 +77,15 @@ namespace MatchingLib
         ///// 50 bytes - content
         ///// </summary>
         //static int OrderUserIdMaxSize { get; } = 50;
-        ///// <summary>
-        ///// 1 byte
-        ///// </summary>
-        //static int OrderIdLenSize { get; } = 1;
-        ///// <summary>
-        ///// 60 bytes
-        ///// </summary>
+        /// <summary>
+        /// 1 byte
+        /// </summary>
+        static int OrderIdLenSize { get; } = 1;
+        /// <summary>
+        /// 40 bytes
+        /// </summary>
         //static int OrderIdMaxSize { get; } = 60;
+        static int OrderIdMaxSize { get; } = 40;
         /// <summary>
         /// 8 bytes
         /// </summary>
@@ -94,7 +95,7 @@ namespace MatchingLib
         /// Max: 223 bytes
         /// </summary>
         public static int TotalLength { get; } = MsgLenSize + SuccessSize + DateTimeSize + ErrorTypeSize/* + OrderExecutionTypeSize + OrderDirectionSize + OrderSymbolLenSize + OrderSymbolMaxSize + OrderPriceLenSize + OrderPriceMaxSize +
-            OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize + OrderIdLenSize + OrderIdMaxSize*/ + OrderFilledVolumeSize;
+            OrderVolumeSize + OrderUserIdLenSize + OrderUserIdMaxSize*/ + OrderIdLenSize + OrderIdMaxSize + OrderFilledVolumeSize;
 
         public bool Success { get; set; } = false;
         public DateTime dt { get; set; } = DateTime.Now;
@@ -123,16 +124,17 @@ namespace MatchingLib
             //int OrderUserIdActualSize = bytes[OrderUserIdLenPos];
 
             //int OrderIdLenPos = OrderUserIdPos + OrderUserIdActualSize;
-            //int OrderIdPos = OrderIdLenPos + OrderIdLenSize;
-            //int OrderIdActualSize = bytes[OrderIdLenPos];
+            int OrderIdLenPos = ErrorTypePos + ErrorTypeSize;
+            int OrderIdPos = OrderIdLenPos + OrderIdLenSize;
+            int OrderIdActualSize = bytes[OrderIdLenPos];
 
-            //int OrderFilledVolumePos = OrderIdPos + OrderIdActualSize;
-            int OrderFilledVolumePos = ErrorTypePos + ErrorTypeSize;
+            int OrderFilledVolumePos = OrderIdPos + OrderIdActualSize;
+            //int OrderFilledVolumePos = ErrorTypePos + ErrorTypeSize;
 
             this.Success = BitConverter.ToBoolean(bytes, SuccessPos);
             long _dt = BitConverter.ToInt64(bytes, DateTimePos);
             this.dt = DateTime.FromBinary(_dt);
-            //this.errorType = (ErrorType)bytes[ErrorTypePos];
+            this.errorType = (ErrorType)bytes[ErrorTypePos];
             //if (order == null) throw new Exception("Order isn't initialized!");
             //this.order.et = (Order.ExecutionType)bytes[OrderExecutionTypePos];
             //this.order.t = (Order.OrderType)bytes[OrderDirectionPos];
@@ -145,7 +147,7 @@ namespace MatchingLib
             //}
             //this.order.v = BitConverter.ToInt64(bytes, OrderVolumePos);
             //this.order.u = Encoding.UTF8.GetString(bytes, OrderUserIdPos, OrderUserIdActualSize).Trim();
-            //this.order.id = Encoding.UTF8.GetString(bytes, OrderIdPos, OrderIdActualSize).Trim();
+            this.order.id = Encoding.UTF8.GetString(bytes, OrderIdPos, OrderIdActualSize).Trim();
             this.order.fv = BitConverter.ToInt64(bytes, OrderFilledVolumePos);
         }
         /// <summary>
@@ -169,8 +171,8 @@ namespace MatchingLib
             //buffer.bw.Write(this.order.v);
             //if (this.order.u.Length > OrderUserIdMaxSize) throw new Exception(string.Format("User ID exceed max length:{0}", OrderUserIdMaxSize));
             //buffer.bw.Write(this.order.u);
-            //if (this.order.id.Length > OrderIdMaxSize) throw new Exception(string.Format("Order ID exceed max length:{0}", OrderIdMaxSize));
-            //buffer.bw.Write(this.order.id);
+            if (this.order.id.Length > OrderIdMaxSize) throw new Exception(string.Format("Order ID exceed max length:{0}", OrderIdMaxSize));
+            buffer.bw.Write(this.order.id);
             buffer.bw.Write(this.order.fv);
             buffer.lenBw.Write((short)buffer.ms.Position);
             buffer.length = (int)buffer.ms.Position;
