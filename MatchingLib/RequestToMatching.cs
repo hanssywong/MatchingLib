@@ -141,7 +141,7 @@ namespace MatchingLib
                 this.order.p = p;
             }
             this.order.v = BitConverter.ToInt64(bytes, OrderVolumePos);
-            this.id = Encoding.UTF8.GetString(bytes, OrderReqIdPos, OrderReqIdActualSize).Trim();
+            this.order.u = Encoding.UTF8.GetString(bytes, OrderReqIdPos, OrderReqIdActualSize).Trim();
             this.order.id = Encoding.UTF8.GetString(bytes, OrderIdPos, OrderIdActualSize).Trim();
             this.order.fv = BitConverter.ToInt64(bytes, OrderFilledVolumePos);
         }
